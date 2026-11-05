@@ -15,7 +15,7 @@ function Get-HPDockUpdateDetails {
     - make sure you set the $URL to the version of the firmware you want... as the of the day I write this, it's the latest one.
     
     .Requirements
-    PowerShell must have access to the interent to download the Firmware
+    PowerShell must have access to the internet to download the Firmware
     
     .Parameter UIExperience
     Sets the UI experience for the end user.  
@@ -75,6 +75,8 @@ function Get-HPDockUpdateDetails {
     24.09.05.01 - adding switch for IntuneApp to assist in deploying the updates via Intune.
     24.10.27.01 - updated USB-C G5 Dock Firmware
     25.01.21.01 - updated USB-C G5 Essential Dock Firmware, USB-C G5 Dock Firmware, USB-C Universal Dock G2 Firmware, and Thunderbolt G4 Firmware URLs
+    26.04.30.01 - Added Thunderbolt 4 Ultra 180W/280W G6 Dock; Updated Thunderbolt G4, Thunderbolt G2, USB-C Dock G5, USB-C/A Universal Dock G2 
+    26.04.30.02 - Added logic branch for when $HPFirmwareTest.ExitCode is 0 but an upgrade is actually required
 
     .Notes
     This will ONLY create a transcription log IF the dock is attached and it starts the process to test firmware.  If no dock is detected, no logging is created.
@@ -150,7 +152,7 @@ function Get-HPDockUpdateDetails {
         #Assumes the process will be done offline and skips use of HPCMSL
         $CMSL = $false
     }
-    else{
+    else {
         Try {
             $HPDeviceDetails = Get-HPDeviceDetails -ErrorAction SilentlyContinue
             $HPDeviceDetails | Out-Null
@@ -213,19 +215,19 @@ function Get-HPDockUpdateDetails {
             
         # **** Hardcode URLs in case of no CMSL installed: ****
         #USB-C G5 Essential Dock
-        $Url_EssG5 = 'https://ftp.hp.com/pub/softpaq/sp155001-155500/sp155374.exe'  #  01.00.12.00 Rev.C | Oct 9, 2024
+        $Url_EssG5 = 'https://ftp.hp.com/pub/softpaq/sp158001-158500/sp158026.exe'  #  01.00.12.00 Rev.E | Apr 15, 2025
             
         #Thunderbolt G4
-        $Url_TBG4 = 'https://ftp.hp.com/pub/softpaq/sp155001-155500/sp155361.exe'   #  1.5.25.0 Rev.B | Oct 7, 2024
+        $Url_TBG4 = 'https://ftp.hp.com/pub/softpaq/sp165501-166000/sp165902.exe' # 1.5.29.0 Rev.A | Apr 21, 2026
             
         #Thunderbolt G2
-        $Url_TBG2 = 'https://ftp.hp.com/pub/softpaq/sp153501-154000/sp153722.exe'   #  1.0.71.1 RevD | July 29, 2024
+        $Url_TBG2 = 'https://ftp.hp.com/pub/softpaq/sp165501-166000/sp165886.exe'   #  1.0.72.1 RevB | Feb 16, 2026
             
         #USB-C Dock G5
-        $Url_UsbG5 = 'https://ftp.hp.com/pub/softpaq/sp156001-156500/sp156379.exe'  #  1.0.23.0 Rev.B | Dec 17, 2024
+        $Url_UsbG5 = 'https://ftp.hp.com/pub/softpaq/sp165501-166000/sp165907.exe' # 1.0.26.0 Rev.A | Apr 21, 2026
             
-        #USB-C Universal Dock G2
-        $Url_UniG2 = 'https://ftp.hp.com/pub/softpaq/sp156001-156500/sp156380.exe'  #  1.1.23.0 Rev.B | Dec 17, 2024
+        #USB-C/A Universal Dock G2 
+        $Url_UniG2 = 'https://ftp.hp.com/pub/softpaq/sp165501-166000/sp165909.exe'  #  1.1.25.0 Rev.A | Apr 21, 2026
             
         #USB-C Dock G4
         $Url_UsbG4 = 'https://ftp.hp.com/pub/softpaq/sp88501-89000/sp88999.exe'     #  F.37 | Jul 15, 2018
@@ -235,6 +237,9 @@ function Get-HPDockUpdateDetails {
             
         #E24d G4 FHD Docking Monitor
         $Url_E24D = 'https://ftp.hp.com/pub/softpaq/sp145501-146000/sp145577.exe'   #  1.0.17.0 | Mar 28, 2023
+
+        #Thunderbolt 4 Ultra 180W/280W G6 Dock 
+        $Url_TBUG6 = 'https://ftp.hp.com/pub/softpaq/sp172001-172500/sp172013.exe'   #  1.4.42.0 | Apr 21, 2026
             
             
         #######################################################################################
@@ -251,11 +256,12 @@ function Get-HPDockUpdateDetails {
                     '*PID_484A*' { $Dock_Attached = 3 ; $Dock_ProductName = 'HP USB-C Dock G4' ; $Dock_Url = $Url_UsbG4 ; $FirmwareInstaller = 'HP_USB-C_Dock_G4_FW_Update_Tool_Console.exe' }
                     '*PID_046A*' { $Dock_Attached = 3 ; $Dock_ProductName = 'HP Elite USB-C Dock' ; $Dock_Url = $Url_UsbElite ; $FirmwareInstaller = 'HP Elite USB-C Dock FW Update Tool.exe' }
                     '*PID_046B*' { $Dock_Attached = 4 ; $Dock_ProductName = 'HP USB-C Dock G5' ; $Dock_Url = $Url_UsbG5  ; $FirmwareInstaller = 'HPFirmwareInstaller.exe' }
-                    #'*PID_600A*' { $Dock_Attached = 5 ; $Dock_ProductName = 'HP USB-C Universal Dock' }
+                    '*PID_600A*' { $Dock_Attached = 5 ; $Dock_ProductName = 'HP USB-C Universal Dock' }
                     '*PID_0A6B*' { $Dock_Attached = 6 ; $Dock_ProductName = 'HP USB-C Universal Dock G2' ; $Dock_Url = $Url_UniG2 ; $FirmwareInstaller = 'HPFirmwareInstaller.exe' }
                     '*PID_056D*' { $Dock_Attached = 7 ; $Dock_ProductName = 'HP E24d G4 FHD Docking Monitor'; $Dock_Url = $Url_E24D ; $FirmwareInstaller = 'HPFirmwareInstaller.exe' }
                     '*PID_016E*' { $Dock_Attached = 8 ; $Dock_ProductName = 'HP E27d G4 QHD Docking Monitor' }
                     '*PID_379D*' { $Dock_Attached = 9 ; $Dock_ProductName = 'HP USB-C G5 Essential Dock' ; $Dock_Url = $Url_EssG5 ; $FirmwareInstaller = 'HPFirmwareInstaller.exe' }
+                    '*PID_0387*' { $Dock_Attached = 10 ; $Dock_ProductName = 'HP Thunderbolt 4 Ulta G6' ; $Dock_Url = $Url_TBUG6 ; $FirmwareInstaller = 'HPFirmwareInstaller.exe' }
                 } # switch -Wildcard ( $f_InstalledDeviceID )
             } # if ( $f_InstalledDeviceID -match "VID_03F0")
             if ( $Dock_Attached -gt 0 ) { break }
@@ -406,7 +412,7 @@ function Get-HPDockUpdateDetails {
                 }
             }
         }
-        elseif ($IntuneApp -eq $true){
+        elseif ($IntuneApp -eq $true) {
             $Invocation = (Get-Variable MyInvocation -Scope 1).Value
             $IntuneAppPath = Split-Path $Invocation.MyCommand.Path
             if (($DebugOut) -or ($Transcript)) { write-Host " IntuneAppPath =  $IntuneAppPath" -ForegroundColor Cyan }
@@ -446,7 +452,7 @@ function Get-HPDockUpdateDetails {
                 }
                 else {
                     if (($DebugOut) -or ($Transcript)) { Write-Host "  Admin rights require to extract to $ExtractPath" -ForegroundColor Red }
-                    Stop-Transcript
+                    if ($Transcript) { Stop-Transcript }
                     return -1
                 }           
             }
@@ -587,11 +593,56 @@ function Get-HPDockUpdateDetails {
                     
                 switch ( $HPFirmwareTest.ExitCode ) {
                     0 { 
-                        if (($DebugOut) -or ($Transcript)) { Write-Host " Firmware is up to date" -ForegroundColor Green }
                         $InstalledVersion = Get-PackageVersion $Dock.Dock_Attached $VersionFile
-                        if (($DebugOut) -or ($Transcript)) { Write-Host " Installed Version: $InstalledVersion" -ForegroundColor Green }
-                        $script:UpdateRequired = $false
-                        $script:InstalledFirmwareVersion = $InstalledVersion
+                        [version]$InstalledVersionVN = $InstalledVersion
+                        [version]$PackageVersionVN = $PackageVersion
+                        if ($InstalledVersionVN -lt $PackageVersionVN) {
+                            if (!($UIExperience)) { $UIExperience = 'NonInteractive' }
+                            $Mode = switch ($UIExperience) {
+                                "NonInteractive" { "-ni" }
+                                "Silent" { "-s" }
+                                "Check" { "-C" }
+                                "Force" { "-f" }
+                            }
+                            if (($DebugOut) -or ($Transcript)) { Write-Host " Update Required" -ForegroundColor Yellow }
+                            $InstalledVersion = Get-PackageVersion $Dock.Dock_Attached $VersionFile
+                            if (($DebugOut) -or ($Transcript)) { Write-Host " Installed Version: $InstalledVersion" -ForegroundColor Yellow }
+                            
+                            $script:InstalledFirmwareVersion = $InstalledVersion
+                            if ($InstalledVersion -eq $PackageVersion) {
+                                if (($DebugOut) -or ($Transcript)) { Write-Host " Exit Code 105, but Versions already match, skipping Update" -ForegroundColor Yellow }
+                                $script:UpdateRequired = $false
+                            }
+                            else {
+                                $script:UpdateRequired = $true
+                                if ( $Update ) {          
+                                    $FirmwareArgList = "$Mode"
+                                    if (($Dock.Dock_ProductName -eq "HP Thunderbolt Dock G4") -or ($Dock.Dock_ProductName -eq "HP USB-C Dock G5") -or ($Dock.Dock_ProductName -eq "HP USB-C Universal Dock G2")) {
+                                        if ($stage) {
+                                            $FirmwareArgList = "$Mode -stage"
+                                        }
+                                    }
+                                    if (($DebugOut) -or ($Transcript)) { Write-Host " Starting Dock Firmware Update" -ForegroundColor Magenta }
+                                    
+                                    $HPFirmwareUpdate = Start-Process -FilePath "$OutFilePath\$SPNumber\HPFirmwareInstaller.exe" -ArgumentList "$FirmwareArgList" -PassThru -Wait -NoNewWindow
+                                    $ExitInfo = $HPFIrmwareUpdateReturnValues | Where-Object { $_.Code -eq $HPFirmwareUpdate.ExitCode }
+                                    if ($ExitInfo.Code -eq "0") {
+                                        if (($DebugOut) -or ($Transcript)) { Write-Host " Update Successful!" -ForegroundColor Green }
+                                    }
+                                    else {
+                                        if (($DebugOut) -or ($Transcript)) { Write-Host " Update Failed" -ForegroundColor Red }
+                                        if (($DebugOut) -or ($Transcript)) { Write-Host " Exit Code: $($ExitInfo.Code)" -ForegroundColor Gray }
+                                        if (($DebugOut) -or ($Transcript)) { Write-Host " $($ExitInfo.Message)" -ForegroundColor Gray }
+                                    }
+                                }
+                            } # if ( $Update )
+                        }
+                        else {
+                            if (($DebugOut) -or ($Transcript)) { Write-Host " Firmware is up to date" -ForegroundColor Green }
+                            if (($DebugOut) -or ($Transcript)) { Write-Host " Installed Version: $InstalledVersion" -ForegroundColor Green }
+                            $script:UpdateRequired = $false
+                            $script:InstalledFirmwareVersion = $InstalledVersion
+                        }
                     } # 0
                     105 {
                         if (!($UIExperience)) { $UIExperience = 'NonInteractive' }
